@@ -27,6 +27,7 @@ pip3 install --break-system-packages boto3 google-auth google-auth-oauthlib goog
 ```bash
 cp aws_accounts.json.example aws_accounts.json
 cp gcp-service-account.json.example gcp-service-account.json
+cp sheet_config.json.example sheet_config.json
 ```
 
 4. Edit the configuration files with your actual credentials (see Configuration section below)
@@ -39,7 +40,28 @@ python3 ec2_inventory.py
 
 ## Configuration
 
-### 1. AWS Account Setup
+### 1. Google Sheet Configuration
+
+#### Configure sheet_config.json
+
+1. If you haven't already, copy the example configuration file:
+```bash
+cp sheet_config.json.example sheet_config.json
+```
+
+2. Edit `sheet_config.json` and add your Google Sheet ID:
+```json
+{
+  "sheet_id": "YOUR_GOOGLE_SHEET_ID_HERE"
+}
+```
+
+**How to find your Google Sheet ID:**
+- Open your Google Sheet in a browser
+- The URL will look like: `https://docs.google.com/spreadsheets/d/SHEET_ID_HERE/edit`
+- Copy the `SHEET_ID_HERE` portion
+
+### 2. AWS Account Setup
 
 #### Create AWS IAM User and Access Keys
 
@@ -104,7 +126,7 @@ To add additional AWS accounts later, simply add another object to the `accounts
 }
 ```
 
-### 2. Google Cloud Service Account Setup
+### 3. Google Cloud Service Account Setup
 
 #### Create a Google Cloud Project
 
@@ -147,20 +169,21 @@ cp gcp-service-account.json.example gcp-service-account.json
 
 1. Open the `gcp-service-account.json` file
 2. Copy the `client_email` value (e.g., `ec2-inventory-uploader@your-project.iam.gserviceaccount.com`)
-3. Open your Google Sheet: https://docs.google.com/spreadsheets/d/133Q4pajDehzFzdpN9_PISi-6q9nGosnIcnDUXc_LN4A
+3. Open your Google Sheet (use the URL from `sheet_config.json`)
 4. Click the **Share** button
 5. Paste the service account email
 6. Give it **Editor** access
 7. Uncheck **Notify people**
 8. Click **Share**
 
-### 3. Update Script Configuration (Optional)
+### 4. Update Script Configuration (Optional)
 
-The script has default values configured, but you can change them in `ec2_inventory.py`:
+The script reads configuration from the following files:
+- `sheet_config.json`: Google Sheet ID
+- `gcp-service-account.json`: Google service account credentials
+- `aws_accounts.json`: AWS account credentials
 
-- **Google Sheet ID**: Line 105 - `default="133Q4pajDehzFzdpN9_PISi-6q9nGosnIcnDUXc_LN4A"`
-- **GCP Key File**: Line 100 - `default="gcp-service-account.json"`
-- **AWS Accounts Config**: Line 90 - `default="aws_accounts.json"`
+You can override these settings via command-line arguments. Run `python3 ec2_inventory.py --help` for details.
 
 ## Usage
 
@@ -185,10 +208,11 @@ python3 ec2_inventory.py --help
 
 Options:
 - `--config`: Path to AWS accounts config file (default: `aws_accounts.json`)
+- `--sheet-config`: Path to Google Sheet config file (default: `sheet_config.json`)
 - `--region`: Override AWS region for all accounts
 - `--output`: Output CSV filename (default: `ec2_inventory.csv`)
 - `--gcp-key`: Path to Google service account key (default: `gcp-service-account.json`)
-- `--sheet-id`: Google Sheet ID (default: configured in script)
+- `--sheet-id`: Google Sheet ID (overrides `sheet_config.json` if provided)
 - `--sheet-title`: Title for new Google Sheets (default: `EC2 Inventory`)
 - `--share-with`: Email to share the Google Sheet with
 
@@ -214,8 +238,8 @@ tail -f /home/ubuntu/aws-ai/ec2_inventory.log
 ## Security Best Practices
 
 1. **Protect your credentials:**
-   - Never commit `aws_accounts.json` or `gcp-service-account.json` to version control
-   - Set appropriate file permissions: `chmod 600 aws_accounts.json gcp-service-account.json`
+   - Never commit `aws_accounts.json`, `gcp-service-account.json`, or `sheet_config.json` to version control
+   - Set appropriate file permissions: `chmod 600 aws_accounts.json gcp-service-account.json sheet_config.json`
 
 2. **Use least privilege:**
    - AWS IAM users should only have read-only access
@@ -241,6 +265,9 @@ pip3 install --break-system-packages boto3
 
 ### "Error: AWS accounts config file not found"
 Make sure `aws_accounts.json` exists in the same directory as the script.
+
+### "Error: No sheet_id configured"
+Make sure `sheet_config.json` exists and contains a valid Google Sheet ID, or provide `--sheet-id` as a command-line argument.
 
 ### "The caller does not have permission" (Google Sheets error)
 Make sure the service account email (from `gcp-service-account.json`) has been granted Editor access to the Google Sheet.

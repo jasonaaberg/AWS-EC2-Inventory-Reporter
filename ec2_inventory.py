@@ -83,6 +83,14 @@ def resolve_region(explicit_region):
     )
 
 
+def load_sheet_config(config_path="sheet_config.json"):
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        return config.get("sheet_id")
+    return None
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Export running EC2 instances to CSV."
@@ -91,6 +99,11 @@ def parse_args():
         "--config",
         default="aws_accounts.json",
         help="Path to AWS accounts configuration file (default: aws_accounts.json).",
+    )
+    parser.add_argument(
+        "--sheet-config",
+        default="sheet_config.json",
+        help="Path to Google Sheet configuration file (default: sheet_config.json).",
     )
     parser.add_argument(
         "--region",
@@ -108,8 +121,7 @@ def parse_args():
     )
     parser.add_argument(
         "--sheet-id",
-        default="133Q4pajDehzFzdpN9_PISi-6q9nGosnIcnDUXc_LN4A",
-        help="Google Sheet ID to update (if omitted, a new sheet is created).",
+        help="Google Sheet ID to update (overrides sheet_config.json if provided).",
     )
     parser.add_argument(
         "--sheet-title",
@@ -287,10 +299,11 @@ def main():
     print(f"Wrote {total_instances} total instances to {output_file}")
 
     if args.gcp_key:
+        sheet_id = args.sheet_id or load_sheet_config(args.sheet_config)
         sheet_url = upload_csv_to_google_sheet(
             output_file,
             args.gcp_key,
-            sheet_id=args.sheet_id,
+            sheet_id=sheet_id,
             sheet_title=args.sheet_title,
             share_with=args.share_with,
         )

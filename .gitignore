@@ -36,6 +36,7 @@ env/
 # Credentials and Sensitive Files
 aws_accounts.json
 gcp-service-account.json
+sheet_config.json
 *.pem
 *.key
 
