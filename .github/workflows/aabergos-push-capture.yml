@@ -1,0 +1,37 @@
+# AabergOS Marketing Engine — Push Event Forwarder
+#
+# Add this workflow to any repo you want the marketing engine to capture.
+# On every push to main/master, it POSTs the push event to your engine's
+# /api/git/actions-push endpoint via bearer token.
+#
+# Required secret (set in repo or org settings):
+#   AABERGOS_PUSH_TOKEN — the GH_ACTIONS_TOKEN from your engine's config/.env
+#
+# Required variable (set in repo or org settings):
+#   AABERGOS_API_URL — your engine's URL, e.g. http://10.1.10.119:8000
+#                      (or Cloudflare Tunnel URL if using one)
+
+name: AabergOS Push Capture
+
+on:
+  push:
+    branches: [main, master]
+
+jobs:
+  notify-engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Forward push event to AabergOS
+        env:
+          AABERGOS_API_URL: ${{ vars.AABERGOS_API_URL }}
+          AABERGOS_PUSH_TOKEN: ${{ secrets.AABERGOS_PUSH_TOKEN }}
+        run: |
+          curl -sf -X POST \
+            "${AABERGOS_API_URL}/api/git/actions-push" \
+            -H "Authorization: Bearer ${AABERGOS_PUSH_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '${{ toJson(github.event) }}' \
+            --max-time 10 \
+            --retry 2 \
+            --retry-delay 5
